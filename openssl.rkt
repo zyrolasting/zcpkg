@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide run-openssl-command)
+(provide run-openssl-command
+         digest-message)
 
 (require racket/file
          racket/function
@@ -86,8 +87,8 @@
        (return 'cannot-initialize-digest))
 
      (populate-message
-      (λ (message)
-        (unless (= 1 (_EVP_DigestUpdate mdctx message (bytes-length message)))
+      (λ (message [len (bytes-length message)])
+        (unless (= 1 (_EVP_DigestUpdate mdctx message len))
           (return 'cannot-update-digest))))
 
      (define pdigest (_OPENSSL_malloc (_EVP_MD_size (algorithm))))

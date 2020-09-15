@@ -59,16 +59,6 @@
          "rc.rkt"
          "openssl.rkt")
 
-(define _EVP_MD_pointer _pointer)
-
-(define (cbind sym type)
-  (and libcrypto
-       (get-ffi-obj sym libcrypto type
-                    (λ () #f))))
-
-(define SHA1_Init (cbind 'SHA1_Init (_fun _pointer _-> _int)))
-(define SHA1_Update (cbind 'SHA1_Update (_fun _pointer _pointer _long _-> _int)))
-
 
 (struct integrity-info (algorithm digest) #:prefab)
 
@@ -93,17 +83,20 @@
   (integrity-info algorithm (make-digest variant algorithm)))
 
 
-
 (define (make-digest variant algorithm)
   (cond [(path-string? variant)
          (call-with-input-file variant (λ (i) (make-digest i algorithm)))]
         [(bytes? variant)
          (make-digest (open-input-bytes variant) algorithm)]
         [(input-port? variant)
-         (run-openssl-command variant
-                              "dgst"
-                              "-binary"
-                              (~a "-" algorithm))]
+         (define buffer (make-bytes (* 300 1024)))
+         (digest-message algorithm
+                         (λ (f)
+                           (let loop ()
+                             (define res (read-bytes-avail! buffer variant))
+                             (if (exact-positive-integer? res)
+                                 (begin (f buffer res) (loop))
+                                 (void)))))]
         [else (raise-argument-error 'make-digest
                                     "A path, bytes, or an input port"
                                     variant)]))
