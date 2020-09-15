@@ -64,8 +64,7 @@
                integrity-info?)]
 
           [signature
-           (-> xiden-cipher-algorithm/c
-               (or/c bytes? path-string?)
+           (-> (or/c bytes? path-string?)
                bytes?
                signature-info?)]
 
@@ -157,14 +156,10 @@
    (in-list (reverse (flatten messages))))
   result)
 
+
 (define-syntax (from-file stx)
   (syntax-parse stx
     [(_ user-path:string)
-     (for ([el (in-list (explode-path (syntax-e #'user-path)))])
-       (when (eq? el 'up)
-         (raise-syntax-error 'from-file
-                             "A relative path source may not reference parent directories."
-                             #'user-path)))
      (with-syntax ([wrt (syntax-source-directory stx)])
        #'(normalize-path user-path wrt))]))
 
@@ -179,8 +174,9 @@
 
 (define base32 (curry decode 'base32))
 (define base64 (curry decode 'base64))
+
 (define (hex variant)
-  (decode (if (string-contains? variant ":")
+  (decode (if (string-contains? (coerce-string variant) ":")
               'colon-separated-hex
               'hex)
           variant))

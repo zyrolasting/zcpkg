@@ -18,6 +18,7 @@
          "cli-flag.rkt"
          "cmdline.rkt"
          "contract.rkt"
+         "encode.rkt"
          "exn.rkt"
          "file.rkt"
          "format.rkt"
@@ -75,6 +76,7 @@
            ["gc" gc-command]
            ["config" config-command]
            ["sandbox" sandbox-command]
+           ["certify" certify-command]
            [_ (const (halt 1 ($unrecognized-command action)))]))
        (proc args halt)))
 
@@ -85,6 +87,7 @@
   show     Print reports
   config   Manage settings
   sandbox  Start sandboxed REPL
+  certify  Certify an input
 
 EOF
    ))
@@ -251,6 +254,41 @@ EOF
                                 [exn:break? void])
                   (read-eval-print-loop)))))))
        (halt 0 null)))))
+
+
+(define (certify-command args halt)
+  (run-command-line
+   #:program "certify"
+   #:args args
+   #:halt halt
+   #:arg-help-strings '("path")
+   #:flags
+   (make-cli-flag-table --my-private-key --my-public-key)
+   (λ (flags path)
+     (with-rc flags
+       (define pubkey
+         (and (XIDEN_USER_PUBLIC_KEY_PATH)
+              (encode 'colon-separated-hex (make-fingerprint (XIDEN_USER_PUBLIC_KEY_PATH)))))
+
+       (define digest (make-digest path 'sha384))
+
+       (pretty-write #:newline? #t
+                     `(integrity 'sha384 (base64 ,(coerce-string (encode 'base64 (make-digest path 'sha384))))))
+
+       (when (and pubkey (XIDEN_USER_PRIVATE_KEY_PATH))
+         (pretty-write
+          #:newline? #t
+          `(signature (hex ,pubkey)
+                      (base64
+                       ,(coerce-string
+                         (encode 'base64
+                                 (make-signature
+                                  digest
+                                  (XIDEN_USER_PRIVATE_KEY_PATH))))))))
+
+
+       (halt 0 null)))))
+
 
 
 (define (show-command args halt)

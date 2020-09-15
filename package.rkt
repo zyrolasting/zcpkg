@@ -211,7 +211,9 @@
                                  path-or-#f))]
 
             [(member 'write ops)
-             (unless (path-prefix? (normalize-path path-or-#f) write-dir)
+             (unless (or (path-prefix? (normalize-path path-or-#f) write-dir)
+                         (path-prefix? (normalize-path path-or-#f)
+                                       (find-system-path 'temp-dir)))
                (raise-user-error 'security
                                  "Unauthorized attempt to write in ~a"
                                  path-or-#f))]

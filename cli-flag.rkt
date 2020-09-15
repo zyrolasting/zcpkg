@@ -34,6 +34,7 @@
                any)]))
 
 (require racket/cmdline
+         "integrity.rkt"
          "rc.rkt"
          "setting.rkt"
          "string.rkt")
@@ -145,17 +146,28 @@
 
 
 ; Unary flags
+(flag-out [-q --my-private-key] (cli-flag/unary XIDEN_USER_PRIVATE_KEY_PATH keep "path"))
+(flag-out [-p --my-public-key]  (cli-flag/unary XIDEN_USER_PUBLIC_KEY_PATH keep "path"))
+
 (flag-out [-X --plugin] (cli-flag/unary XIDEN_MODS_MODULE keep "path"))
 (flag-out [-M --sandbox-memory-limit] (cli-flag/unary XIDEN_SANDBOX_MEMORY_LIMIT_MB arg->value "mibibytes"))
 (flag-out [-e --sandbox-eval-memory-limit] (cli-flag/unary XIDEN_SANDBOX_EVAL_MEMORY_LIMIT_MB arg->value "mibibytes"))
 (flag-out [-S --sandbox-eval-time-limit] (cli-flag/unary XIDEN_SANDBOX_EVAL_TIME_LIMIT_SECONDS arg->value "seconds"))
 (flag-out [-m] (cli-flag/unary XIDEN_FETCH_TOTAL_SIZE_MB arg->value "mibibytes-or-+inf.0"))
 (flag-out [-n] (cli-flag/unary XIDEN_FETCH_BUFFER_SIZE_MB arg->value "mibibytes"))
-(flag-out [-p] (cli-flag/unary XIDEN_FETCH_PKGDEF_SIZE_MB arg->value "mibibytes"))
+(flag-out [-l] (cli-flag/unary XIDEN_FETCH_PKGDEF_SIZE_MB arg->value "mibibytes"))
 (flag-out [-d] (cli-flag/unary XIDEN_FETCH_TIMEOUT_MS arg->value "milliseconds"))
-(flag-out [-q] (cli-flag/unary XIDEN_PRIVATE_KEY_PATH arg->value "path"))
 (flag-out [-o --max-redirects] (cli-flag/unary XIDEN_DOWNLOAD_MAX_REDIRECTS arg->value "exact-nonnegative-integer"))
 (flag-out [+h ++host] (cli-flag/list XIDEN_SERVICE_ENDPOINTS "url-string"))
+
+(flag-out [+k ++public-key]
+          (cli-flag/unary XIDEN_PUBLIC_KEYS
+                          (λ (flag path)
+                            (hash-set (XIDEN_PUBLIC_KEYS)
+                                      (make-fingerprint path)
+                                      path))
+                          "path"))
+
 
 ; Unary boolean flags
 (flag-out [-r] (cli-flag/boolean XIDEN_MATCH_RACKET_MODULES))
@@ -177,6 +189,15 @@
                                     (cons (list link-name output-name source)
                                           (XIDEN_INSTALL_SOURCES)))
                     '("link-name" "output-name" "source")))
+
+(flag-out [+d ++define]
+          (cli-flag XIDEN_DEFINES
+                    'multi null 2
+                    (λ (flag id val)
+                      (hash-set (XIDEN_DEFINES)
+                                (string->symbol id)
+                                (arg->value val)))
+                    '("identifier" "racket-literal")))
 
 
 ; For use in REPL and tests. Provides a quick way to preview the effect of command

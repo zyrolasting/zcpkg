@@ -171,8 +171,17 @@
 (define-xiden-setting XIDEN_VERBOSE boolean? #f
   "Show more information in program output")
 
-(define-xiden-setting XIDEN_PRIVATE_KEY_PATH (or/c #f path-string?) #f
-  "The location of a private key")
+(define-xiden-setting XIDEN_PUBLIC_KEYS (hash/c bytes? bytes?) (hash)
+  "Trusted public keys")
+
+(define-xiden-setting XIDEN_USER_PRIVATE_KEY_PATH (or/c #f path-string?) #f
+  "The location of the user's private key")
+
+(define-xiden-setting XIDEN_USER_PUBLIC_KEY_PATH (or/c #f path-string?) #f
+  "The location of the user's public key")
+
+(define-xiden-setting XIDEN_DEFINES (hash/c symbol? any/c) (hash)
+  "User-defined bindings for a new package definition")
 
 (define-xiden-setting XIDEN_SERVICE_ENDPOINTS (listof url-string?) '("https://zcpkg.com")
   "Services to contact when searching for package definitions")
@@ -203,7 +212,8 @@
    XIDEN_MATCH_COMPILED_RACKET
    XIDEN_MATCH_RACKET_MODULES
    XIDEN_MODS_MODULE
-   XIDEN_PRIVATE_KEY_PATH
+   XIDEN_USER_PUBLIC_KEY_PATH
+   XIDEN_USER_PRIVATE_KEY_PATH
    XIDEN_READER_FRIENDLY_OUTPUT
    XIDEN_SANDBOX_EVAL_MEMORY_LIMIT_MB
    XIDEN_SANDBOX_EVAL_TIME_LIMIT_SECONDS
@@ -247,33 +257,33 @@
         (dump-xiden-settings))))
 
     (define dump (dump-xiden-settings))
-    (check-equal? (hash-ref dump 'XIDEN_PRIVATE_KEY_PATH)
-                  (XIDEN_PRIVATE_KEY_PATH))
+    (check-equal? (hash-ref dump 'XIDEN_USER_PRIVATE_KEY_PATH)
+                  (XIDEN_USER_PRIVATE_KEY_PATH))
 
-    (XIDEN_PRIVATE_KEY_PATH
+    (XIDEN_USER_PRIVATE_KEY_PATH
      "foo"
      (λ ()
-       (check-not-equal? (hash-ref dump 'XIDEN_PRIVATE_KEY_PATH)
-                         (XIDEN_PRIVATE_KEY_PATH))
-       (check-equal? (hash-ref (dump-xiden-settings) 'XIDEN_PRIVATE_KEY_PATH)
-                     (XIDEN_PRIVATE_KEY_PATH)))))
+       (check-not-equal? (hash-ref dump 'XIDEN_USER_PRIVATE_KEY_PATH)
+                         (XIDEN_USER_PRIVATE_KEY_PATH))
+       (check-equal? (hash-ref (dump-xiden-settings) 'XIDEN_USER_PRIVATE_KEY_PATH)
+                     (XIDEN_USER_PRIVATE_KEY_PATH)))))
 
   (test-workspace "Find fallback values from several sources"
     (test-false "First use a hard-coded value"
-                (XIDEN_PRIVATE_KEY_PATH))
+                (XIDEN_USER_PRIVATE_KEY_PATH))
 
     (test-case "Override hard-coded value with rcfile"
-      (XIDEN_PRIVATE_KEY_PATH "foo" save-xiden-settings!)
-      (with-xiden-rcfile (check-equal? (XIDEN_PRIVATE_KEY_PATH) "foo")))
+      (XIDEN_USER_PRIVATE_KEY_PATH "foo" save-xiden-settings!)
+      (with-xiden-rcfile (check-equal? (XIDEN_USER_PRIVATE_KEY_PATH) "foo")))
 
     (test-case "Override rcfile value with envvar value"
-      (dynamic-wind (λ () (putenv "XIDEN_PRIVATE_KEY_PATH" "\"bar\""))
-                    (λ () (check-equal? (XIDEN_PRIVATE_KEY_PATH) "bar"))
+      (dynamic-wind (λ () (putenv "XIDEN_USER_PRIVATE_KEY_PATH" "\"bar\""))
+                    (λ () (check-equal? (XIDEN_USER_PRIVATE_KEY_PATH) "bar"))
                     (λ ()
-                      (putenv "XIDEN_PRIVATE_KEY_PATH" "")
+                      (putenv "XIDEN_USER_PRIVATE_KEY_PATH" "")
                       (with-xiden-rcfile
                         (test-equal? "Do not use empty envvar strings as a source for settings"
-                                     (XIDEN_PRIVATE_KEY_PATH)
+                                     (XIDEN_USER_PRIVATE_KEY_PATH)
                                      "foo"))))))
 
   (test-workspace "Lazily validate fallback values"
@@ -282,7 +292,7 @@
               (λ ()
                 (dynamic-wind void
                               (λ ()
-                                (putenv "XIDEN_PRIVATE_KEY_PATH" "123")
-                                (XIDEN_PRIVATE_KEY_PATH))
+                                (putenv "XIDEN_USER_PRIVATE_KEY_PATH" "123")
+                                (XIDEN_USER_PRIVATE_KEY_PATH))
                               (λ ()
-                                (putenv "XIDEN_PRIVATE_KEY_PATH" "")))))))
+                                (putenv "XIDEN_USER_PRIVATE_KEY_PATH" "")))))))

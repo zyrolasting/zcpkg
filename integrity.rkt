@@ -52,10 +52,23 @@
 
 (require racket/sequence
          racket/format
+         openssl/libcrypto
+         (rename-in ffi/unsafe [-> _->])
          "encode.rkt"
          "file.rkt"
          "rc.rkt"
          "openssl.rkt")
+
+(define _EVP_MD_pointer _pointer)
+
+(define (cbind sym type)
+  (and libcrypto
+       (get-ffi-obj sym libcrypto type
+                    (λ () #f))))
+
+(define SHA1_Init (cbind 'SHA1_Init (_fun _pointer _-> _int)))
+(define SHA1_Update (cbind 'SHA1_Update (_fun _pointer _pointer _long _-> _int)))
+
 
 (struct integrity-info (algorithm digest) #:prefab)
 
