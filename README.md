@@ -44,7 +44,7 @@ First, make sure the following programs are available in your search paths.
 
 * SQLite 3.24.0+. Verify with `sqlite3 -version`.
 * Racket 7.0+. Verify with `racket -v`.
-* OpenSSL 0.9.8+. Verify with `openssl version`.
+* OpenSSL 1.0.0+. Verify with `openssl version`.
 
 Next, build the project using `make`.
 
